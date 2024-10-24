@@ -55,45 +55,28 @@ class CodeChecker(ast.NodeVisitor):
                 ignoreItems = [line.strip().strip(ITEMS_TO_IGNORE_SYMBOL) for line in file if line.strip() and line.startswith(ITEMS_TO_IGNORE_SYMBOL)]
         return ignoreItems
 
-    def isValidFormat(self, name: str, type: str | None = None) -> bool:
-        """Check if a name is in camel case or other valid format.
+    def isValidFormat(self, name: str, varType: str | None = None) -> bool:
+        """Check if a name is in snake_case or other valid format.
 
         Args:
             name (str): the name to check
             type (str | None, optional): the type of name to check; defaults to None
 
         Returns:
-            bool: true if the name is in camel case or other valid format, False otherwise
+            bool: true if the name is in snake_case or other valid format, False otherwise
         """
         if name in self.itemsToIgnore:
             return True
-        if all(char.isupper() for char in name):
+        if name.isupper():  # Handle constants in all caps
             return True
-        if name[0] == "_":
+        if name.startswith('_'):
             return True
-        if "_" in name:
-            for side in name.split("_"):
-                for char in side:
-                    if not char.isupper():
-                        return False
-            return True
-        if type:
+        if varType:
             return self.isPascalCase(name)
-        return self.isCamelCase(name)
-    
-    def isCamelCase(self, name: str) -> bool:
-        """Check if a name is in camel case.
-
-        Args:
-            name (str): the name to check
-
-        Returns:
-            bool: true if the name is in camel case, False otherwise
-        """
-        return re.match(r'^[a-z0-9]+(?:[A-Z][a-z0-9]*)*$', name) is not None
-    
+        return self.isSnakeCase(name)
+        
     def isPascalCase(self, name: str) -> bool:
-        """Check if a name is in pascal case.
+        """Checks if a name is in pascal case.
 
         Args:
             name (str): the name to check
@@ -102,6 +85,24 @@ class CodeChecker(ast.NodeVisitor):
             bool: true if the name is in pascal case, False otherwise
         """
         return re.match(r'^[A-Z][A-Za-z0-9]+(?:[A-Z][a-z0-9]*)*$', name) is not None
+    
+    def isSnakeCase(self, name: str) -> bool:
+        """Checks if a name is in snake case.
+
+        Args:
+            name (str): the name to check
+
+        Returns:
+            bool: true if the name is in snake case, False otherwise
+        """        
+        if "_" in name:
+            parts = name.split("_")
+            if any(not part.islower() for part in parts if part):
+                return False
+            if "__" in name:
+                return False
+            return True
+        return name.islower() and name.isalnum()
 
     def toString(self, node: ast.FunctionDef | ast.ClassDef, message: str) -> str:
         """Converts a node and a message to a string.
@@ -156,7 +157,7 @@ class CodeChecker(ast.NodeVisitor):
         Args:
             node (ast.ClassDef): the node to visit
         """
-        if not self.isValidFormat(node.name, type='class'):
+        if not self.isValidFormat(node.name, varType='class'):
             self.errors.append(self.toString(node, f"Class '{node.name}' is not in Pascal case."))
         self.verifyDocstring(node)
         self.generic_visit(node)
