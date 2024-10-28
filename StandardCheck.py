@@ -65,7 +65,7 @@ class CodeChecker(ast.NodeVisitor):
         Returns:
             bool: true if the name is in snake_case or other valid format, False otherwise
         """
-        for baseClass in self.__class__.__bases__:
+        for baseClass in self.__class__.__mro__:
             if hasattr(baseClass, name):
                 return True  # Allow inherited methods
         if name in self.itemsToIgnore:
