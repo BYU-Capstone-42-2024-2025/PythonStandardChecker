@@ -65,6 +65,9 @@ class CodeChecker(ast.NodeVisitor):
         Returns:
             bool: true if the name is in snake_case or other valid format, False otherwise
         """
+        for baseClass in self.__class__.__bases__:
+            if hasattr(baseClass, name):
+                return True  # Allow inherited methods
         if name in self.itemsToIgnore:
             return True
         if name.isupper():  # Handle constants in all caps
@@ -129,7 +132,7 @@ class CodeChecker(ast.NodeVisitor):
         self.verifyDocstring(node)
 
         if not self.isValidFormat(node.name):
-            self.errors.append(self.toString(node, f"Function '{node.name}'  is not in camel case."))
+            self.errors.append(self.toString(node, f"Function '{node.name}'  is not in snake case."))
 
         if NAME_MANGLE in node.name and node.name not in self.special_methods and node.name not in self.itemsToIgnore:
             self.errors.append(self.toString(node, f"Function '{node.name}'  uses '{NAME_MANGLE}' inappropriately."))
@@ -139,7 +142,7 @@ class CodeChecker(ast.NodeVisitor):
                 self.errors.append(self.toString(node, f"Function '{node.name}'  has parameter '{arg.arg}' without type annotation."))
 
             if not self.isValidFormat(arg.arg):
-                self.errors.append(self.toString(node, f"Function '{node.name}'  has parameter '{arg.arg}' that is not in camel case."))
+                self.errors.append(self.toString(node, f"Function '{node.name}'  has parameter '{arg.arg}' that is not in snake case."))
 
         for default in node.args.defaults:
             if isinstance(default, ast.Dict) or isinstance(default, ast.List) or isinstance(default, ast.Set):
