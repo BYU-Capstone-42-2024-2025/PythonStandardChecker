@@ -65,9 +65,6 @@ class CodeChecker(ast.NodeVisitor):
         Returns:
             bool: true if the name is in snake_case or other valid format, False otherwise
         """
-        for baseClass in self.__class__.__mro__:
-            if hasattr(baseClass, name):
-                return True  # Allow inherited methods
         if name in self.itemsToIgnore:
             return True
         if name.isupper():  # Handle constants in all caps
@@ -76,7 +73,9 @@ class CodeChecker(ast.NodeVisitor):
             return True
         if varType:
             return self.isPascalCase(name)
-        return self.isSnakeCase(name)
+        if self.isSnakeCase(name):
+            return True
+        return False
         
     def isPascalCase(self, name: str) -> bool:
         """Checks if a name is in pascal case.
@@ -132,17 +131,17 @@ class CodeChecker(ast.NodeVisitor):
         self.verifyDocstring(node)
 
         if not self.isValidFormat(node.name):
-            self.errors.append(self.toString(node, f"Function '{node.name}'  is not in snake case."))
+            self.errors.append(self.toString(node, f"Function '{node.name}' is not in snake case."))
 
         if NAME_MANGLE in node.name and node.name not in self.special_methods and node.name not in self.itemsToIgnore:
-            self.errors.append(self.toString(node, f"Function '{node.name}'  uses '{NAME_MANGLE}' inappropriately."))
+            self.errors.append(self.toString(node, f"Function '{node.name}' uses '{NAME_MANGLE}' inappropriately."))
 
         for arg in node.args.args:
             if arg.annotation is None and arg.arg not in self.specialVariables and '*' not in arg.arg and '**' not in arg.arg:
-                self.errors.append(self.toString(node, f"Function '{node.name}'  has parameter '{arg.arg}' without type annotation."))
+                self.errors.append(self.toString(node, f"Function '{node.name}' has parameter '{arg.arg}' without type annotation."))
 
             if not self.isValidFormat(arg.arg):
-                self.errors.append(self.toString(node, f"Function '{node.name}'  has parameter '{arg.arg}' that is not in snake case."))
+                self.errors.append(self.toString(node, f"Function '{node.name}' has parameter '{arg.arg}' that is not in snake case."))
 
         for default in node.args.defaults:
             if isinstance(default, ast.Dict) or isinstance(default, ast.List) or isinstance(default, ast.Set):
@@ -150,7 +149,7 @@ class CodeChecker(ast.NodeVisitor):
 
         # Check for return type annotation
         if node.returns is None:
-            self.errors.append(self.toString(node, f"Function '{node.name}'  is missing a return type annotation."))
+            self.errors.append(self.toString(node, f"Function '{node.name}' is missing a return type annotation."))
         
         self.generic_visit(node)
 
@@ -173,9 +172,9 @@ class CodeChecker(ast.NodeVisitor):
         """
         if isinstance(node.ctx, (ast.Store, ast.Param)):
             if NAME_MANGLE in node.id and node.id not in self.special_methods and node.id not in self.itemsToIgnore:
-                self.errors.append(self.toString(node, f"Variable '{node.id}'  uses '{NAME_MANGLE}' inappropriately."))
+                self.errors.append(self.toString(node, f"Variable '{node.id}' uses '{NAME_MANGLE}' inappropriately."))
             if not self.isValidFormat(node.id):
-                self.errors.append(self.toString(node, f"Variable '{node.id}' is not in camel case."))
+                self.errors.append(self.toString(node, f"Variable '{node.id}' is not in snake case."))
         self.generic_visit(node)
 
     def verifyDocstring(self, node: ast.FunctionDef | ast.ClassDef) -> None:
